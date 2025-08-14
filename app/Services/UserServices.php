@@ -223,11 +223,11 @@ class UserServices
             ], 401);
         }
 
-        // if ($data['uid'] != $user->uid && $user->role == "student") {
-        //     return response()->json([
-        //         "message" => "لايمكن الدخول بهذا الجهاز من هذا الحساب",
-        //     ], 401);
-        // }
+        if ($data['uid'] != $user->uid && $user->role == "student") {
+            return response()->json([
+                "message" => "لايمكن الدخول بهذا الجهاز من هذا الحساب",
+            ], 401);
+        }
 
         if (!$user->email_verified_at) {
             return response()->json([
@@ -237,11 +237,11 @@ class UserServices
         }
 
         //check if the account have a token and response can't login with tow devices
-        if ($user->tokens()->first() && $user->isAdmin() == false && $user->isTeacher() == false) {
-            return response()->json([
-                "message" => "الحساب مفتوح بجهاز اخر يرجى تسجيل الخروج ثم المحاولة مرة اخرى",
-            ], 401);
-        }
+        // if ($user->tokens()->first() && $user->isAdmin() == false && $user->isTeacher() == false) {
+        //     return response()->json([
+        //         "message" => "الحساب مفتوح بجهاز اخر يرجى تسجيل الخروج ثم المحاولة مرة اخرى",
+        //     ], 401);
+        // }
 
 
 
