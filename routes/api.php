@@ -22,7 +22,7 @@ Route::group(["middleware" => ["throttle:20,1"]], function () {
 
     //user
     Route::prefix("/user")->group(function () {
-        Route::get("", [UserController::class, 'get_user'])->middleware('auth:sanctum', "role:student,teacher,admin");
+        Route::get("", [UserController::class, 'get_user'])->middleware('auth:sanctum', "role:student,teacher,admin,full");
         Route::post("/verify", [UserController::class, 'verifyEmail']);
         Route::post("/resend-verify", [UserController::class, 'resendEmail']);
         Route::post("/forgot-password", [UserController::class, 'forgotPassword']);
