@@ -279,8 +279,11 @@ class UserServices
                 "email_status" => $user->email_verified_at ? "true" : "false",
             ], 401);
         }
+       
+        $user->tokens()->delete();
 
         $user->uid = $data['uid'];
+        
         $user->save();
         return response()->json([
             "message" => "تم تغيير الجهاز بنجاح",
