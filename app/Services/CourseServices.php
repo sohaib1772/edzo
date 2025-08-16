@@ -467,7 +467,10 @@ class CourseServices
                 ], 403);
             }
 
-            $this->uploadVideoServices->delete_video($video->path);
+            $this->uploadVideoServices->delete_video(
+                $video->course_id,
+                $video->path
+            );
             $video->delete();
             return response()->json([
                 "message" => "تم حذف الفيديو بنجاح"

@@ -5,8 +5,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 //for test
@@ -80,6 +82,13 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], f
     Route::post("/subscriptions", [\App\Http\Controllers\SubscriptionController::class, 'add_subscription']);
 });
 Route::get('/courses/videos/{folder}/{course_id}/{filename}', [VideoController::class, 'stream']);
+
+Route::get('/api/stream-hls/{course_id}/{file}', [VideoController::class, 'streamHls']);
+
+Route::get('/stream-video-segment/{folder}/{courseId}/{filename}/{resolution}/{segment?}', [VideoController::class, 'streamSegment']);
+
+Route::get('/stream-proxy/{course}/{video_id}/{video}/{file}', [VideoController::class, 'stream2']);
+
 
 //for guests
 Route::group(["middleware" => ["throttle:50,1"]], function () {
