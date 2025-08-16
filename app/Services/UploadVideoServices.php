@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ProcessVideo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -44,45 +45,10 @@ class UploadVideoServices
         if (!file_exists($hlsFolder)) mkdir($hlsFolder, 0755, true);
 
         // ===== إعداد FFmpeg و FFProbe =====
-        $ffmpeg = FFMpeg::create([
-            'ffmpeg.binaries'  => base_path('ffmpeg/bin/ffmpeg.exe'),
-            'ffprobe.binaries' => base_path('ffmpeg/bin/ffprobe.exe'),
-            'timeout' => 3600,
-            'ffmpeg.threads' => 12
-        ]);
+         // ===== إرسال مهمة Queue لمعالجة الفيديو لاحقاً =====
+        ProcessVideo::dispatch($localFullPath, $baseFolder, $filenameWithoutExt);
 
-        $video = $ffmpeg->open($localFullPath);
-
-        // ===== إعداد HLS للجودة الأصلية فقط =====
-        $format = new \FFMpeg\Format\Video\X264('aac');
-        $format->setAdditionalParameters([
-            '-hls_time', '6',
-            '-hls_list_size', '0',
-            '-hls_segment_filename', "$hlsFolder/segment_%03d.ts"
-        ]);
-
-        $video->save($format, "$hlsFolder/playlist.m3u8");
-
-        // ===== رفع جميع ملفات HLS إلى Storage Box =====
-        $allHlsFiles = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($hlsFolder)
-        );
-
-        foreach ($allHlsFiles as $f) {
-            if ($f->isFile()) {
-                $stream = fopen($f->getRealPath(), 'r');
-
-                // مسار نسبي صحيح داخل Storage Box
-                $relativePath = "$baseFolder/$filenameWithoutExt-hls/" . $f->getFilename();
-
-                Storage::disk('storagebox')->put($relativePath, $stream);
-                fclose($stream);
-            }
-        }
-
-        // ===== حذف الملفات المحلية بعد الرفع =====
-        unlink($localFullPath);
-        $this->deleteDirectory($hlsFolder);
+        
 
         // ===== إعادة مسار Master Playlist =====
         return "$baseFolder/$filenameWithoutExt-hls/playlist.m3u8";

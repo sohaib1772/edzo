@@ -438,7 +438,7 @@ class CourseServices
 
 
             return response()->json([
-                "message" => "تم رفع الفيديو بنجاح",
+                "message" => "تم رفع الفيديو بنجاح لن يضهر الفيديو مؤقتا حتى اتمام عملية المعالجة",
                 "data" => $video,
             ]);
         } catch (\Exception $e) {
