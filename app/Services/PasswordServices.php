@@ -50,7 +50,7 @@ class PasswordServices{
     public function reset_password($email, $password,$code){
         $user = User::where('email', $email)->first();
         if (!$user) {
-            throw new \Exception("هذا المستخدم غير موجود");
+            throw new \Exception("هذا المستخدم غير حاول مرة اخرى");
         }
 
         $cachedCode = Cache::get("forgot_password_verification_{$email}");

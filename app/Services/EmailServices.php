@@ -19,6 +19,7 @@ class EmailServices
         $cachedCode = Cache::get("email_verification_{$to}");
         if ($cachedCode) {
             Cache::forget("email_verification_{$to}");
+            
         }
 
         $code = Str::random(8);
