@@ -52,6 +52,33 @@ class VideoController extends Controller
            "url" => $url
         ]);
     }
+    function getPublicVideoUrl($course_id, $id)
+    {   
+        $user = Auth::user();
+
+        if ($user) {
+            $user = User::find($user->id);
+        }
+
+        $videoRecord = Video::find($id);
+        if (!$videoRecord) {
+
+            return response()->json(["message" => "الفيديو غير موجود"], 404);
+        }
+
+        if ($videoRecord->is_paid) {
+            if (!$user) {
+                Log::info("Token not found");
+                return response()->json(["message" => "توكن غير صالح أو مفقود"], 401);
+            }
+            
+        }
+
+        $url = $videoRecord->url;
+        return response()->json([
+           "url" => $url
+        ]);
+    }
     // function stream2(Request $request, $course, $video_id, $video, $file)
     // {
     //     // 1. التحقق من التوكن
