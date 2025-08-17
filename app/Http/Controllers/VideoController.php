@@ -18,29 +18,17 @@ use GuzzleHttp\Client;
 class VideoController extends Controller
 {
 
-    function stream2( Request $request,$course,$video_id, $video, $file)
-    {
-        // 1. التحقق من التوكن
-        $token = $request->query('token');
+    function getVideoUrl($course_id, $id)
+    {   
+        $user = Auth::user();
 
-        $user = null;
-        if (!empty($token)) {
-            $cleanToken = str_replace('Bearer ', '', $token);
-
-                
-            
-
-            $accessToken = PersonalAccessToken::findToken($cleanToken);
-            if ($accessToken) {
-                $user = $accessToken->tokenable;
-            }
+        if ($user) {
+            $user = User::find($user->id);
         }
 
-        // 2. تحقق الفيديو موجود وحقوق المشاهدة
-        $videoRecord = Video::find($video_id);
+        $videoRecord = Video::find($id);
         if (!$videoRecord) {
-            Log::info("Video not found: " . $video . " - " . $video_id);
-            Log::info("token not found: " . $token);
+
             return response()->json(["message" => "الفيديو غير موجود"], 404);
         }
 
@@ -50,34 +38,80 @@ class VideoController extends Controller
                 return response()->json(["message" => "توكن غير صالح أو مفقود"], 401);
             }
             if (
-                !$user->subscriptions()->where('course_id', $course)->exists() &&
+                !$user->subscriptions()->where('course_id', $course_id)->exists() &&
                 !$user->isAdmin() &&
                 !$user->isTeacher() &&
                 !$user->isFullAccess()
             ) {
-                Log::info("User does not have access to video: " . $video);
                 return response()->json(["message" => "لا يمكنك مشاهدة هذا الفيديو"], 403);
             }
         }
 
-        // 3. طلب الملف من Storage Box
-        $client = new Client();
-        $url = "https://u484191.your-storagebox.de/uploads/videos/courses_videos/$course/$video-hls/$file";
-        $webdavUser = env('STORAGE_BOX_USERNAME');
-        $webdavPass = env('STORAGE_BOX_PASSWORD');
-
-        try {
-            $response = $client->get($url, [
-                'auth' => [$webdavUser, $webdavPass],
-                'stream' => true,
-            ]);
-
-            return response($response->getBody(), 200)
-                ->header('Content-Type', $response->getHeaderLine('Content-Type'));
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            return response('Unauthorized or file not found', $e->getCode());
-        }
+        $url = $videoRecord->url;
+        return response()->json([
+           "url" => $url
+        ]);
     }
+    // function stream2(Request $request, $course, $video_id, $video, $file)
+    // {
+    //     // 1. التحقق من التوكن
+    //     $token = $request->query('token');
+
+    //     $user = null;
+    //     if (!empty($token)) {
+    //         $cleanToken = str_replace('Bearer ', '', $token);
+
+
+
+
+    //         $accessToken = PersonalAccessToken::findToken($cleanToken);
+    //         if ($accessToken) {
+    //             $user = $accessToken->tokenable;
+    //         }
+    //     }
+
+    //     // 2. تحقق الفيديو موجود وحقوق المشاهدة
+    //     $videoRecord = Video::find($video_id);
+    //     if (!$videoRecord) {
+    //         Log::info("Video not found: " . $video . " - " . $video_id);
+    //         Log::info("token not found: " . $token);
+    //         return response()->json(["message" => "الفيديو غير موجود"], 404);
+    //     }
+
+    //     if ($videoRecord->is_paid) {
+    //         if (!$user) {
+    //             Log::info("Token not found");
+    //             return response()->json(["message" => "توكن غير صالح أو مفقود"], 401);
+    //         }
+    //         if (
+    //             !$user->subscriptions()->where('course_id', $course)->exists() &&
+    //             !$user->isAdmin() &&
+    //             !$user->isTeacher() &&
+    //             !$user->isFullAccess()
+    //         ) {
+    //             Log::info("User does not have access to video: " . $video);
+    //             return response()->json(["message" => "لا يمكنك مشاهدة هذا الفيديو"], 403);
+    //         }
+    //     }
+
+    //     // 3. طلب الملف من Storage Box
+    //     $client = new Client();
+    //     $url = "https://u484191.your-storagebox.de/uploads/videos/courses_videos/$course/$video-hls/$file";
+    //     $webdavUser = env('STORAGE_BOX_USERNAME');
+    //     $webdavPass = env('STORAGE_BOX_PASSWORD');
+
+    //     try {
+    //         $response = $client->get($url, [
+    //             'auth' => [$webdavUser, $webdavPass],
+    //             'stream' => true,
+    //         ]);
+
+    //         return response($response->getBody(), 200)
+    //             ->header('Content-Type', $response->getHeaderLine('Content-Type'));
+    //     } catch (\GuzzleHttp\Exception\ClientException $e) {
+    //         return response('Unauthorized or file not found', $e->getCode());
+    //     }
+    // }
 }
 // function stream(Request $request, $folder, $course_id, $filename)
 // {

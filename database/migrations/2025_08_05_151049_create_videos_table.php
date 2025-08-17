@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('path');
+            $table->string('url');
             $table->foreignId("course_id")->constrained("courses")->onDelete("cascade");
             $table->boolean("is_paid");
             $table->timestamps();

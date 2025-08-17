@@ -28,42 +28,42 @@ class CourseServices
 
 
     public function get_all()
-{
-    $user = Auth::user();
-    
-    if ($user) {
-        $user = User::find($user->id);
-        // نتحقق من الاشتراكات مباشرة
-        $subscribedIds = $user->subscriptions()->pluck('course_id')->toArray();
-    } else {
-        $subscribedIds = [];
-    }
+    {
+        $user = Auth::user();
 
-    // عرض للتأكد من البيانات
-    // dd($user?->id, $subscribedIds);
-
-    $courses = Cache::remember('courses_all', now()->addMinutes(10), function () {
-        return Course::with('teacher')
-            ->withCount('subscribers')
-            ->orderByDesc('created_at')
-            ->get()
-            ->values();
-    });
-
-    $courses->transform(function ($course) use ($subscribedIds) {
-        $course->is_subscribe = in_array($course->id, $subscribedIds);
-        $course->teacher_name = $course->teacher->name ?? null;
-        if ($course->teacher->teacherInfo()->exists()) {
-            $course->teacher_info = $course->teacher->teacherInfo()->first()
-                ->makeHidden(['id', 'user_id', 'created_at', 'updated_at']);
+        if ($user) {
+            $user = User::find($user->id);
+            // نتحقق من الاشتراكات مباشرة
+            $subscribedIds = $user->subscriptions()->pluck('course_id')->toArray();
+        } else {
+            $subscribedIds = [];
         }
-        return $course->makeHidden(['teacher']);
-    });
 
-    return response()->json([
-        "data" => $courses
-    ]);
-}
+        // عرض للتأكد من البيانات
+        // dd($user?->id, $subscribedIds);
+
+        $courses = Cache::remember('courses_all', now()->addMinutes(10), function () {
+            return Course::with('teacher')
+                ->withCount('subscribers')
+                ->orderByDesc('created_at')
+                ->get()
+                ->values();
+        });
+
+        $courses->transform(function ($course) use ($subscribedIds) {
+            $course->is_subscribe = in_array($course->id, $subscribedIds);
+            $course->teacher_name = $course->teacher->name ?? null;
+            if ($course->teacher->teacherInfo()->exists()) {
+                $course->teacher_info = $course->teacher->teacherInfo()->first()
+                    ->makeHidden(['id', 'user_id', 'created_at', 'updated_at']);
+            }
+            return $course->makeHidden(['teacher']);
+        });
+
+        return response()->json([
+            "data" => $courses
+        ]);
+    }
 
     public function get_by_id($id)
     {
@@ -258,7 +258,7 @@ class CourseServices
         $videos = $course->videos()->get();
 
         return response()->json([
-            "data" => $videos
+            "data" => $videos->makeHidden(['url'])
         ]);
     }
 
@@ -382,8 +382,8 @@ class CourseServices
             ], 403);
         }
         try {
-            $this->uploadFilesServices->delete_image($course->image);
-            $this->uploadFilesServices->delete_course_videos($course->id);
+            // $this->uploadFilesServices->delete_image($course->image);
+            //$this->uploadFilesServices->delete_course_videos($course->id);
 
             $course->delete();
             $this->clear_cache($course->id, null, $course->user_id);
@@ -402,13 +402,14 @@ class CourseServices
         $data = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'title' => 'required',
+            "url" => 'required',
             'is_paid' => 'required',
         ], [
             "course_id.required" => "الدورة مطلوبة",
-            "course_id.exists" => "هذا الدورة غير موجود",
+            "course_id.exists" => "الدورة غير موجودة",
             "title.required" => "العنوان مطلوب",
             "is_paid.required" => "نوع الفيديو مطلوب",
-            "file.required" => "فيديو مطلوب",
+            //"file.required" => "فيديو مطلوب",
         ]);
         $course = Course::where(
             "id",
@@ -420,25 +421,32 @@ class CourseServices
                 "message" => "هذه الدورة غير موجود"
             ], 404);
         }
+
+        $youtube_video_id = $this->getYoutubeVideoId($data['url']);
+        if (!$youtube_video_id) {
+            return response()->json([
+                "message" => "رابط الفيديو غير صحيح"
+            ], 400);
+        }
+        
         try {
-            $video_path = $this->uploadVideoServices->upload_video($request, 'courses_videos');
-            if (!$video_path) {
-                // لم ينته رفع الفيديو بعد (أو فشل)
-                return response()->json([
-                    'message' => 'تم رفع جزء من الفيديو، الرجاء إكمال الرفع'
-                ]);
-            }
+            // $video_path = $this->uploadVideoServices->upload_video($request, 'courses_videos');
+            // if (!$video_path) {
+            //     // لم ينته رفع الفيديو بعد (أو فشل)
+            //     return response()->json([
+            //         'message' => 'تم رفع جزء من الفيديو، الرجاء إكمال الرفع'
+            //     ]);
+            // }
 
             $video = $course->videos()->create([
                 'title' => $data['title'],
                 'is_paid' => $data['is_paid'] == 'true' ? true : false,
-                'path' => $video_path,
+                'url' => $youtube_video_id,
+                'path' => ""
             ]);
 
-
-
             return response()->json([
-                "message" => "تم رفع الفيديو بنجاح لن يضهر الفيديو مؤقتا حتى اتمام عملية المعالجة",
+                "message" => "تم رفع الفيديو بنجاح ",
                 "data" => $video,
             ]);
         } catch (\Exception $e) {
@@ -447,7 +455,17 @@ class CourseServices
             ], 500);
         }
     }
+    public function getYoutubeVideoId($url)
+    {
+        // كل أنواع الروابط الشائعة
+        $pattern = '%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i';
 
+        if (preg_match($pattern, $url, $matches)) {
+            return $matches[1]; // ID الفيديو
+        }
+
+        return null; // مو رابط يوتيوب
+    }
     public function delete_video($id)
     {
         $video = Video::find($id);
@@ -467,10 +485,11 @@ class CourseServices
                 ], 403);
             }
 
-            $this->uploadVideoServices->delete_video(
-                $video->course_id,
-                $video->path
-            );
+            // $this->uploadVideoServices->delete_video(
+            //     $video->course_id,
+            //     $video->path
+            // );
+
             $video->delete();
             return response()->json([
                 "message" => "تم حذف الفيديو بنجاح"

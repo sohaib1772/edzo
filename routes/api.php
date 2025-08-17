@@ -80,14 +80,17 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], f
 
     //subscriptions
     Route::post("/subscriptions", [\App\Http\Controllers\SubscriptionController::class, 'add_subscription']);
-});
-Route::get('/courses/videos/{folder}/{course_id}/{filename}', [VideoController::class, 'stream']);
+ });
 
-Route::get('/api/stream-hls/{course_id}/{file}', [VideoController::class, 'streamHls']);
+// Route::get('/courses/videos/{folder}/{course_id}/{filename}', [VideoController::class, 'stream']);
 
-Route::get('/stream-video-segment/{folder}/{courseId}/{filename}/{resolution}/{segment?}', [VideoController::class, 'streamSegment']);
+// Route::get('/api/stream-hls/{course_id}/{file}', [VideoController::class, 'streamHls']);
 
-Route::get('/stream-proxy/{course}/{video_id}/{video}/{file}', [VideoController::class, 'stream2']);
+// Route::get('/stream-video-segment/{folder}/{courseId}/{filename}/{resolution}/{segment?}', [VideoController::class, 'streamSegment']);
+
+// Route::get('/stream-proxy/{course}/{video_id}/{video}/{file}', [VideoController::class, 'stream2']);
+
+Route::get('/get-video/{course_id}/{video_id}', [VideoController::class, 'getVideoUrl']);
 
 
 //for guests

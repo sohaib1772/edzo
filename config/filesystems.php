@@ -53,15 +53,15 @@ return [
             'url' => env('APP_URL') . '/storage/private',
             'visibility' => 'private',
         ],
-        'storagebox' => [
-            'driver' => 'sftp',
-            'host' => env('STORAGE_BOX_HOST'), // عنوان Storage Box
-            'username' => env('STORAGE_BOX_USERNAME'),
-            'password' => env('STORAGE_BOX_PASSWORD'),
-            'port' => (int) env('STORAGE_BOX_PORT', 22),
-            'root' =>  env('STORAGE_BOX_ROOT'), // المسار داخل Storage Box
-            'timeout' => 30,
-        ],
+        // 'storagebox' => [
+        //     'driver' => 'sftp',
+        //     'host' => env('STORAGE_BOX_HOST'), // عنوان Storage Box
+        //     'username' => env('STORAGE_BOX_USERNAME'),
+        //     'password' => env('STORAGE_BOX_PASSWORD'),
+        //     'port' => (int) env('STORAGE_BOX_PORT', 22),
+        //     'root' =>  env('STORAGE_BOX_ROOT'), // المسار داخل Storage Box
+        //     'timeout' => 30,
+        // ],
 
         's3' => [
             'driver' => 's3',
