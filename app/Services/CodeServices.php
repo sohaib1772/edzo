@@ -17,7 +17,7 @@ class CodeServices
         $course = Course::find($course_id);
         if (!$course) {
             return response()->json([
-                "message" => "هذا الدورة غير موجود"
+                "message" => "هذه الدورة غير موجود"
             ], 404);
         }
         $codes = $course->codes()->get();

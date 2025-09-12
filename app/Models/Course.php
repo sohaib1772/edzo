@@ -14,6 +14,7 @@ class Course extends Model
         'image',
         'price',
         'user_id',
+        'telegram_url'
     ];
     protected $casts = [
         'price' => 'integer',

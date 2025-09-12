@@ -55,6 +55,7 @@ class TeacherInfoServices
         $data = $request->validate([
             'bio' => 'string|nullable',
             'image' => 'image|mimes:jpeg,png,jpg',
+            'telegramUrl' => 'string|nullable',
         ], [
             "bio.string" => "وصف المدرب يجب ان يكون نص",
             "image.image" => "صورة المدرب يجب ان تكون صورة",
@@ -65,6 +66,7 @@ class TeacherInfoServices
         $user->teacherInfo()->create([
             'bio' => $data['bio'],
             'image' => $image_path,
+            'telegram_url' => $data['telegramUrl']
         ]);
         $user->save();
         FacadesCache::forget('courses_by_teacher_' . $user->id);
@@ -79,6 +81,7 @@ class TeacherInfoServices
         $data = $request->validate([
             'bio' => 'string|nullable',
             'image' => 'image|mimes:jpeg,png,jpg',
+            'telegramUrl' => 'string|nullable',
         ], [
             "bio.string" => "وصف المدرب يجب ان يكون نص",
             "image.image" => "صورة المدرب يجب ان تكون صورة",
@@ -88,7 +91,7 @@ class TeacherInfoServices
             $image_path = $this->uploadFilesServices->update_image($request, 'teachers_images', $teacher_info->image);
             $teacher_info->update(['image' => $image_path]);
         }
-        $teacher_info->update(['bio' => $data['bio']]);
+        $teacher_info->update(['bio' => $data['bio'], 'telegram_url' => $data['telegramUrl']]);
         $user->save();
         return true;
     }

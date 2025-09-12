@@ -91,6 +91,7 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], f
 // Route::get('/stream-proxy/{course}/{video_id}/{video}/{file}', [VideoController::class, 'stream2']);
 
 Route::get('/get-video/{course_id}/{video_id}', [VideoController::class, 'getVideoUrl'])->middleware('auth:sanctum');
+
 Route::get('/public/get-video/{course_id}/{video_id}', [VideoController::class, 'getPublicVideoUrl']);
 
 

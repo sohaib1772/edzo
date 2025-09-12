@@ -10,6 +10,7 @@ class TeacherInfo extends Model
     protected $fillable = [
         'bio',
         'image',
+        'telegram_url'
     ];
 
     public function user()

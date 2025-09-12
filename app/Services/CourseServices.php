@@ -26,15 +26,16 @@ class CourseServices
     }
 
 
-
-    public function get_all()
+	public function get_all()
     {
         $user = Auth::user();
 
         if ($user) {
             $user = User::find($user->id);
             // نتحقق من الاشتراكات مباشرة
-            $subscribedIds = $user->subscriptions()->pluck('course_id')->toArray();
+            $subscribedIds = Cache::remember("subscriptions_user_{$user->id}", now()->addMinutes(10), function() use ($user) {
+    return $user->subscriptions()->pluck('course_id')->toArray();
+});
         } else {
             $subscribedIds = [];
         }
@@ -65,35 +66,7 @@ class CourseServices
         ]);
     }
 
-    public function get_by_id($id)
-    {
-        $user = Auth::user();
-        if ($user) {
-            $user = User::find($user->id);
-        }
-
-        $course = Cache::remember("course_$id", now()->addMinutes(10), function () use ($id) {
-            return Course::with('teacher')
-                ->withCount('subscribers')
-                ->find($id);
-        });
-        $subscribedIds = [];
-        if ($course && $user) {
-            // تصحيح شرط التحقق من الاشتراك
-            $course->is_subscribe = $user->subscriptions()->where('course_id', $course->id)->exists();
-        } else {
-            $course->is_subscribe = false;
-        }
-
-        $course->teacher_name = $course->teacher->name ?? null;
-        $course->subscribers_count = $course->subscribers_count;
-
-        return response()->json([
-            "data" => $course
-        ]);
-    }
-
-    public function get_by_title(Request $request)
+public function get_by_title(Request $request)
     {
         $title = $request->title;
         $user = Auth::user();
@@ -134,6 +107,34 @@ class CourseServices
             "sent_title" => $title,
             "courses_found_count" => $courses->count(),
             "data" => $courses
+        ]);
+    }
+
+    public function get_by_id($id)
+    {
+        $user = Auth::user();
+        if ($user) {
+            $user = User::find($user->id);
+        }
+
+        $course = Cache::remember("course_$id", now()->addMinutes(10), function () use ($id) {
+            return Course::with('teacher')
+                ->withCount('subscribers')
+                ->find($id);
+        });
+        $subscribedIds = [];
+        if ($course && $user) {
+            // تصحيح شرط التحقق من الاشتراك
+            $course->is_subscribe = $user->subscriptions()->where('course_id', $course->id)->exists();
+        } else {
+            $course->is_subscribe = false;
+        }
+
+        $course->teacher_name = $course->teacher->name ?? null;
+        $course->subscribers_count = $course->subscribers_count;
+
+        return response()->json([
+            "data" => $course
         ]);
     }
 
@@ -270,6 +271,7 @@ class CourseServices
             'description' => 'required',
             'image' => 'required|image|mimes:jpeg,png,jpg',
             'price' => 'sometimes|nullable|numeric',
+            'telegramUrl' => 'string|nullable',
 
         ], [
             "title.required" => "اسم الدورة مطلوب",
@@ -290,6 +292,7 @@ class CourseServices
                 'image' => $image_path,
                 'price' => $data['price'] ?? 0,
                 'user_id' => $user->id,
+                'telegram_url' => $data['telegramUrl'] ?? null,
             ]);
 
 
@@ -327,9 +330,10 @@ class CourseServices
         $data = $request->validate([
             'title' => 'required',
             'description' => 'required',
-            'image' => 'required|image|mimes:jpeg,png,jpg',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg',
 
             'price' => 'sometimes|nullable|numeric',
+            'telegramUrl' => 'string|nullable',
         ], [
             "title.required" => "اسم الدورة مطلوب",
             "description.required" => "وصف الدورة مطلوب",
@@ -340,8 +344,12 @@ class CourseServices
             'price' => 'sometimes|nullable|numeric',
         ]);
         try {
-            Log::info("image: " . $course->image);
-            $image_path = $this->uploadFilesServices->update_image($request, 'courses_images', $course->image);
+            if($request->hasFile('image')){
+                            $image_path = $this->uploadFilesServices->update_image($request, 'courses_images', $course->image);
+
+            }else{
+                $image_path = $course->image;
+            }
 
             $course->update([
                 'title' => $data['title'],
@@ -349,6 +357,7 @@ class CourseServices
                 'image' => $image_path,
                 'price' => $data['price'] ?? $course->price,
                 'user_id' => $user->id,
+                'telegram_url' => $data['telegramUrl'] ?? $course->telegram_url,
             ]);
             $this->clear_cache($course->id, null, $user->id);
             $course->load("codes");
@@ -548,11 +557,6 @@ class CourseServices
             'courses_all',
         ];
 
-        // إذا عندك كلمات بحث محفوظة، احفظ مفاتيحها بنفسك عند التخزين واحذفها هنا
-        // مثال:
-        // $keys[] = 'courses_title_' . md5('عنوان البحث');
-
-        // إذا عندك ID المستخدم (مثلاً في اشتراك أو إلغاء)
         if ($userId) {
             $keys[] = "user_{$userId}_subscribed_courses";
         }
