@@ -413,6 +413,7 @@ public function get_by_title(Request $request)
             'title' => 'required',
             "url" => 'required',
             'is_paid' => 'required',
+            "duration" => 'nullable|numeric',
         ], [
             "course_id.required" => "الدورة مطلوبة",
             "course_id.exists" => "الدورة غير موجودة",
@@ -451,6 +452,7 @@ public function get_by_title(Request $request)
                 'title' => $data['title'],
                 'is_paid' => $data['is_paid'] == 'true' ? true : false,
                 'url' => $youtube_video_id,
+                'duration' => $data['duration'] ?? null,
                 'path' => ""
             ]);
 

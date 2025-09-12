@@ -12,6 +12,8 @@ class Video extends Model
         'course_id',
         'is_paid',
         'url',
+        "duration"
+
     ];
     protected $casts = [
         'is_paid' => 'boolean',
