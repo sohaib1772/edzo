@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
        $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'verified' => \App\Http\Middleware\VerifiedMiddleware::class,
+            'retry_db' => \App\Http\Middleware\RetryDatabaseConnection::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

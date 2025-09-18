@@ -12,14 +12,20 @@ class Video extends Model
         'course_id',
         'is_paid',
         'url',
-        "duration"
+        "duration",
+        'playlist_id',
 
     ];
     protected $casts = [
         'is_paid' => 'boolean',
+        'playlist_id' => 'integer',
     ];
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+    public function playlist()
+    {
+        return $this->belongsTo(Playlist::class);
     }
 }

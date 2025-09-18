@@ -18,24 +18,27 @@ class CourseServices
     protected CodeServices $codeServices;
     protected UploadVideoServices $uploadVideoServices;
 
-    public function __construct(UploadFilesServices $uploadFilesServices, CodeServices $codeServices, UploadVideoServices $uploadVideoServices)
+    protected PlaylistServices $playlistServices;
+
+    public function __construct(UploadFilesServices $uploadFilesServices, CodeServices $codeServices, UploadVideoServices $uploadVideoServices, PlaylistServices $playlistServices)
     {
         $this->uploadFilesServices = $uploadFilesServices;
         $this->codeServices = $codeServices;
         $this->uploadVideoServices = $uploadVideoServices;
+        $this->playlistServices = $playlistServices;
     }
 
 
-	public function get_all()
+    public function get_all()
     {
         $user = Auth::user();
 
         if ($user) {
             $user = User::find($user->id);
             // نتحقق من الاشتراكات مباشرة
-            $subscribedIds = Cache::remember("subscriptions_user_{$user->id}", now()->addMinutes(10), function() use ($user) {
-    return $user->subscriptions()->pluck('course_id')->toArray();
-});
+            $subscribedIds = Cache::remember("subscriptions_user_{$user->id}", now()->addMinutes(10), function () use ($user) {
+                return $user->subscriptions()->pluck('course_id')->toArray();
+            });
         } else {
             $subscribedIds = [];
         }
@@ -66,7 +69,7 @@ class CourseServices
         ]);
     }
 
-public function get_by_title(Request $request)
+    public function get_by_title(Request $request)
     {
         $title = $request->title;
         $user = Auth::user();
@@ -250,16 +253,26 @@ public function get_by_title(Request $request)
 
     public function get_course_videos($id)
     {
-        $course = Course::find($id);
+        $course = Course::with(['playlists.videos'])->find($id);
+
         if (!$course) {
             return response()->json([
-                "message" => "هذا الدورة غير موجود"
+                "message" => "هذه الدورة غير موجودة"
             ], 404);
         }
-        $videos = $course->videos()->get();
+
+        // الفيديوهات المباشرة (بدون بلاي ليست)
+        $directVideos = $course->videos()->whereNull('playlist_id')->get();
 
         return response()->json([
-            "data" => $videos->makeHidden(['url'])
+            "direct_videos" => $directVideos->makeHidden(['url']),
+            "playlists"     => $course->playlists->map(function ($playlist) {
+                return [
+                    "id"     => $playlist->id,
+                    "title"  => $playlist->title,
+                    "videos" => $playlist->videos->makeHidden(['url']),
+                ];
+            }),
         ]);
     }
 
@@ -344,10 +357,9 @@ public function get_by_title(Request $request)
             'price' => 'sometimes|nullable|numeric',
         ]);
         try {
-            if($request->hasFile('image')){
-                            $image_path = $this->uploadFilesServices->update_image($request, 'courses_images', $course->image);
-
-            }else{
+            if ($request->hasFile('image')) {
+                $image_path = $this->uploadFilesServices->update_image($request, 'courses_images', $course->image);
+            } else {
                 $image_path = $course->image;
             }
 
@@ -414,11 +426,15 @@ public function get_by_title(Request $request)
             "url" => 'required',
             'is_paid' => 'required',
             "duration" => 'nullable|numeric',
+            'playlist_id' => 'nullable|exists:playlists,id',
         ], [
             "course_id.required" => "الدورة مطلوبة",
             "course_id.exists" => "الدورة غير موجودة",
             "title.required" => "العنوان مطلوب",
             "is_paid.required" => "نوع الفيديو مطلوب",
+            "url.required" => "رابط الفيديو مطلوب",
+            "playlist_id.exists" => "القائمة غير موجودة",
+
             //"file.required" => "فيديو مطلوب",
         ]);
         $course = Course::where(
@@ -438,7 +454,7 @@ public function get_by_title(Request $request)
                 "message" => "رابط الفيديو غير صحيح"
             ], 400);
         }
-        
+
         try {
             // $video_path = $this->uploadVideoServices->upload_video($request, 'courses_videos');
             // if (!$video_path) {
@@ -453,7 +469,8 @@ public function get_by_title(Request $request)
                 'is_paid' => $data['is_paid'] == 'true' ? true : false,
                 'url' => $youtube_video_id,
                 'duration' => $data['duration'] ?? null,
-                'path' => ""
+                'path' => "",
+                'playlist_id' => $data['playlist_id'] ?? null
             ]);
 
             return response()->json([

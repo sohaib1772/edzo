@@ -13,10 +13,19 @@ use Illuminate\Support\Facades\Route;
 
 //for test
 
+Route::get('/api/test', function() {
+    return response()->json([
+        'data' => [
+            ['id' => 1, 'name' => 'Course 1'],
+            ['id' => 2, 'name' => 'Course 2'],
+            ['id' => 3, 'name' => 'Course 3'],
+            ['id' => 4, 'name' => 'Course 4'],
+        ]
+    ]);
+});
 
 
-
-Route::group(["middleware" => ["throttle:20,1"]], function () {
+Route::group(["middleware" => ["retry_db"]], function () {
     //auth
     Route::post("/register", [UserController::class, 'register']);
     Route::post("/login", [UserController::class, 'login']);
@@ -35,7 +44,7 @@ Route::group(["middleware" => ["throttle:20,1"]], function () {
 });
 
 
-Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], function () {
+Route::group(["middleware" => ["auth:sanctum", "verified", "retry_db"]], function () {
 
     Route::group(["middleware" => ["role:admin"]], function () {
         Route::get("/user/search", [\App\Http\Controllers\UserController::class, 'get_user_by_name']);
@@ -63,6 +72,13 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], f
             Route::get("/teacher", [\App\Http\Controllers\CoursesController::class, 'get_teacher_courses']);
             Route::post("/add-codes/{id}", [\App\Http\Controllers\CoursesController::class, 'add_codes']);
         });
+
+        Route::prefix("/playlist")->group(function () {
+                Route::post("", [\App\Http\Controllers\PlaylistController::class, 'create']);
+                Route::get("/{course_id}", [\App\Http\Controllers\PlaylistController::class, 'getAllByCourse']);
+                Route::put("/{playList_id}", [\App\Http\Controllers\PlaylistController::class, 'update']);
+                Route::delete("{id}", [\App\Http\Controllers\PlaylistController::class, 'delete']);
+        });
     });
 
     //courses public
@@ -89,14 +105,13 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "throttle:100,1"]], f
 // Route::get('/stream-video-segment/{folder}/{courseId}/{filename}/{resolution}/{segment?}', [VideoController::class, 'streamSegment']);
 
 // Route::get('/stream-proxy/{course}/{video_id}/{video}/{file}', [VideoController::class, 'stream2']);
-
+Route::group(["middleware" => ["retry_db"]], function () {
 Route::get('/get-video/{course_id}/{video_id}', [VideoController::class, 'getVideoUrl'])->middleware('auth:sanctum');
-
 Route::get('/public/get-video/{course_id}/{video_id}', [VideoController::class, 'getPublicVideoUrl']);
 
-
+});
 //for guests
-Route::group(["middleware" => ["throttle:50,1"]], function () {
+Route::group(["middleware" => ["retry_db"]], function () {
     Route::prefix("/public/courses")->group(function () {
         Route::get("", [\App\Http\Controllers\CoursesController::class, 'index']);
         Route::get("/search", [\App\Http\Controllers\CoursesController::class, 'get_by_title']);
