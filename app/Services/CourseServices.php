@@ -49,7 +49,8 @@ class CourseServices
         $courses = Cache::remember('courses_all', now()->addMinutes(10), function () {
             return Course::with('teacher')
                 ->withCount('subscribers')
-                ->orderByDesc('created_at')
+                ->orderByDesc('is_pin')   // أول شي نرتب حسب pin
+                ->orderByDesc('created_at') // بعدها الأحدث
                 ->get()
                 ->values();
         });
@@ -252,29 +253,38 @@ class CourseServices
     }
 
     public function get_course_videos($id)
-    {
-        $course = Course::with(['playlists.videos'])->find($id);
+{
+    $course = Course::with(['playlists.videos'])->find($id);
 
-        if (!$course) {
-            return response()->json([
-                "message" => "هذه الدورة غير موجودة"
-            ], 404);
-        }
-
-        // الفيديوهات المباشرة (بدون بلاي ليست)
-        $directVideos = $course->videos()->whereNull('playlist_id')->get();
-
+    if (!$course) {
         return response()->json([
-            "direct_videos" => $directVideos->makeHidden(['url']),
-            "playlists"     => $course->playlists->map(function ($playlist) {
+            "message" => "هذه الدورة غير موجودة"
+        ], 404);
+    }
+
+    // الفيديوهات المباشرة (بدون بلاي ليست)
+    $directVideos = $course->videos()
+        ->whereNull('playlist_id')
+        ->orderBy('order')
+        ->get();
+
+    return response()->json([
+        "direct_videos" => $directVideos->makeHidden(['url']),
+        "playlists"     => $course->playlists()
+            ->orderBy('order')   // ✅ ترتيب البلاي ليست
+            ->get()
+            ->map(function ($playlist) {
                 return [
                     "id"     => $playlist->id,
                     "title"  => $playlist->title,
-                    "videos" => $playlist->videos->makeHidden(['url']),
+                    "videos" => $playlist->videos()
+                        ->orderBy('order')   // ✅ ترتيب الفيديوهات داخل البلاي ليست
+                        ->get()
+                        ->makeHidden(['url']),
                 ];
             }),
-        ]);
-    }
+    ]);
+}
 
     public  function  store(Request $request)
     {
@@ -306,6 +316,7 @@ class CourseServices
                 'price' => $data['price'] ?? 0,
                 'user_id' => $user->id,
                 'telegram_url' => $data['telegramUrl'] ?? null,
+                'is_pin' => false,
             ]);
 
 
@@ -569,7 +580,7 @@ class CourseServices
         }
     }
 
-    private function clear_cache($courseId = null, $userId = null, $teacherId = null)
+    public function clear_cache($courseId = null, $userId = null, $teacherId = null)
     {
         // مفاتيح ثابتة معروفة
         $keys = [

@@ -14,6 +14,7 @@ class Video extends Model
         'url',
         "duration",
         'playlist_id',
+        'order',
 
     ];
     protected $casts = [

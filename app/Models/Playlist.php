@@ -12,6 +12,7 @@ class Playlist extends Model
     protected $fillable = [
         'title',
         'teacher_id',
+         'order',
     ];
 
     // العلاقة مع الفيديوهات (playlist تحتوي على عدة فيديوهات)

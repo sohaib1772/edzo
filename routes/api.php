@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PinCourseController;
 use App\Http\Controllers\UploadCunkedController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
@@ -63,6 +64,8 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "retry_db"]], functio
 
         //courses management
         Route::prefix("/courses")->group(function () {
+            Route::post('/{id}/pin', [PinCourseController::class, 'pin'])->middleware('role:admin');
+            Route::delete('/{id}/pin', [PinCourseController::class, 'unpin'])->middleware('role:admin');
             Route::post("", [\App\Http\Controllers\CoursesController::class, 'store']);
             Route::post("/videos", [\App\Http\Controllers\CoursesController::class, 'upload_video']);
             Route::delete("/{id}/videos", [\App\Http\Controllers\CoursesController::class, 'delete_video']);
@@ -71,6 +74,8 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "retry_db"]], functio
             Route::delete("/{id}", [\App\Http\Controllers\CoursesController::class, 'destroy']);
             Route::get("/teacher", [\App\Http\Controllers\CoursesController::class, 'get_teacher_courses']);
             Route::post("/add-codes/{id}", [\App\Http\Controllers\CoursesController::class, 'add_codes']);
+            Route::put("/update-video-order", [\App\Http\Controllers\VideoOrderController::class, 'updateOrder']);
+            Route::put("/update-playlist-order", [\App\Http\Controllers\PlaylistOrderController::class, 'updateOrder']);
         });
 
         Route::prefix("/playlist")->group(function () {

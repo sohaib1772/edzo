@@ -14,10 +14,12 @@ class Course extends Model
         'image',
         'price',
         'user_id',
-        'telegram_url'
+        'telegram_url',
+        'is_pin',
     ];
     protected $casts = [
         'price' => 'integer',
+        'is_pin' => 'boolean',
     ];
     public function teacher()
     {

@@ -10,27 +10,28 @@ use Illuminate\Support\Facades\Auth;
 
 class PlaylistServices
 {
-    public function getAllPlaylistsByCourse(Request $request,$courseId)
-    {
-       $course = Course::with(['playlists.videos'])->find($courseId);
+    public function getAllPlaylistsByCourse(Request $request, $courseId)
+{
+    $course = Course::with(['playlists' => function ($query) {
+        $query->orderBy('order')->with(['videos' => function($q) {
+            $q->orderBy('order');
+        }]);
+    }])->find($courseId);
 
-        if (!$course) {
-            return response()->json([
-                "message" => "هذه الدورة غير موجودة"
-            ], 404);
-        }
-
-        // الفيديوهات المباشرة (بدون بلاي ليست)
-
-        return response()->json($course->playlists->map(function ($playlist) {
-                return [
-                    "id"     => $playlist->id,
-                    "title"  => $playlist->title,
-                    "videos" => $playlist->videos->makeHidden(['url']),
-                ];
-            }),
-        );
+    if (!$course) {
+        return response()->json([
+            "message" => "هذه الدورة غير موجودة"
+        ], 404);
     }
+
+    return response()->json($course->playlists->map(function ($playlist) {
+        return [
+            "id"     => $playlist->id,
+            "title"  => $playlist->title,
+            "videos" => $playlist->videos->makeHidden(['url']),
+        ];
+    }));
+}
 
     public function createPlaylist(Request $request)
     {
