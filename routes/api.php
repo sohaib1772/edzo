@@ -54,6 +54,9 @@ Route::group(["middleware" => ["auth:sanctum", "verified", "retry_db"]], functio
     });
 
     Route::group(["middleware" => ["role:teacher,admin"]], function () {
+
+        Route::post("get-course-code/{id}", [\App\Http\Controllers\CoursesController::class, 'get_course_code']);
+
         //teacher info
         Route::prefix("/teacher-info")->group(function () {
             Route::get("", [\App\Http\Controllers\TeacherInfoController::class, 'get_teacher_info']);

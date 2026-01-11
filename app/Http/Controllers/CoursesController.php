@@ -76,5 +76,8 @@ class CoursesController extends Controller
     public function add_codes($id){
         return $this->courseServices->add_codes($id);
     }
+    public function get_course_code($id){
+        return $this->courseServices->get_course_code($id);
+    }
     
 }

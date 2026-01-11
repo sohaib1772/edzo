@@ -253,38 +253,38 @@ class CourseServices
     }
 
     public function get_course_videos($id)
-{
-    $course = Course::with(['playlists.videos'])->find($id);
+    {
+        $course = Course::with(['playlists.videos'])->find($id);
 
-    if (!$course) {
+        if (!$course) {
+            return response()->json([
+                "message" => "هذه الدورة غير موجودة"
+            ], 404);
+        }
+
+        // الفيديوهات المباشرة (بدون بلاي ليست)
+        $directVideos = $course->videos()
+            ->whereNull('playlist_id')
+            ->orderBy('order')
+            ->get();
+
         return response()->json([
-            "message" => "هذه الدورة غير موجودة"
-        ], 404);
+            "direct_videos" => $directVideos->makeHidden(['url']),
+            "playlists"     => $course->playlists()
+                ->orderBy('order')   // ✅ ترتيب البلاي ليست
+                ->get()
+                ->map(function ($playlist) {
+                    return [
+                        "id"     => $playlist->id,
+                        "title"  => $playlist->title,
+                        "videos" => $playlist->videos()
+                            ->orderBy('order')   // ✅ ترتيب الفيديوهات داخل البلاي ليست
+                            ->get()
+                            ->makeHidden(['url']),
+                    ];
+                }),
+        ]);
     }
-
-    // الفيديوهات المباشرة (بدون بلاي ليست)
-    $directVideos = $course->videos()
-        ->whereNull('playlist_id')
-        ->orderBy('order')
-        ->get();
-
-    return response()->json([
-        "direct_videos" => $directVideos->makeHidden(['url']),
-        "playlists"     => $course->playlists()
-            ->orderBy('order')   // ✅ ترتيب البلاي ليست
-            ->get()
-            ->map(function ($playlist) {
-                return [
-                    "id"     => $playlist->id,
-                    "title"  => $playlist->title,
-                    "videos" => $playlist->videos()
-                        ->orderBy('order')   // ✅ ترتيب الفيديوهات داخل البلاي ليست
-                        ->get()
-                        ->makeHidden(['url']),
-                ];
-            }),
-    ]);
-}
 
     public  function  store(Request $request)
     {
@@ -541,6 +541,25 @@ class CourseServices
     }
 
     // generate new 10 codes for course
+
+    public function get_course_code($id)
+    {
+        $course = Course::find($id);
+        //check if theres code that not deleted for one min and deleted
+        $course->codes()
+            ->where('created_at', '<=', now()->subHour())
+            ->delete();
+
+
+        $randomCode = \Illuminate\Support\Str::random(16);
+        $code =   $course->codes()->create([
+            'code' => $randomCode,
+        ]);
+        return response()->json([
+            "message" => "تم انشاء الاكواد بنجاح",
+            "data" => $code,
+        ]);
+    }
     public function add_codes($id)
     {
         $course = Course::find($id);
