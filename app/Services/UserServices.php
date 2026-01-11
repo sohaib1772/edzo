@@ -146,6 +146,17 @@ class UserServices
         try {
             $data = $request->validated();
 
+            $user = User::where('email', $data['email'])->first();
+
+            if ($user && $user->email_verified_at) {
+                return response()->json([
+                    "message" => "البريد الإلكتروني مستخدم من قبل",
+                    "email_verified" => "true",
+                ], 401);
+            }else if ($user && !$user->email_verified_at) {
+                $user->delete();
+            }
+
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -153,7 +164,7 @@ class UserServices
                 'uid' => $data['uid'],
             ]);
 
-
+            
             $this->emailServices->send_verification_email($user->email, "تفعيل الحساب");
             return response()->json([
                 "message" => "تم انشاء المستخدم بنجاح يرجى التحقق من البريد الالكتروني لتأكيد الحساب",

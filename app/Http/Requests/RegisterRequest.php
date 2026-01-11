@@ -16,7 +16,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => 'required|string',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email',
             'password' => 'required|confirmed',
             'uid' => 'required',
         ];
@@ -29,7 +29,6 @@ class RegisterRequest extends FormRequest
             'name.string' => 'يجب أن يكون الاسم نصًا.',
             'email.required' => 'البريد الإلكتروني مطلوب.',
             'email.email' => 'صيغة البريد الإلكتروني غير صحيحة.',
-            'email.unique' => 'البريد الإلكتروني مستخدم بالفعل.',
             'password.required' => 'كلمة المرور مطلوبة.',
             'password.confirmed' => 'تأكيد كلمة المرور غير مطابق.',
             'uid.required' => 'رقم الجهاز مطلوب.',
