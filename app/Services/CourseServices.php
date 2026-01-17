@@ -546,9 +546,9 @@ class CourseServices
     {
         $course = Course::find($id);
         //check if theres code that not deleted for one min and deleted
-        $course->codes()
-            ->where('created_at', '<=', now()->subHour())
-            ->delete();
+        // $course->codes()
+        //     ->where('created_at', '<=', now()->subHour())
+        //     ->delete();
 
 
         $randomCode = \Illuminate\Support\Str::random(16);
