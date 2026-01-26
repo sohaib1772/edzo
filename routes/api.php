@@ -27,7 +27,7 @@ Route::get('/api/test', function() {
 
 Route::get('/app-version', function() {
     return response()->json([
-        'version' => '3.0.6'
+        'version' => '3.0.7'
     ]);
 });
 
